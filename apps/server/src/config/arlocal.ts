@@ -1,0 +1,148 @@
+/**
+ * ArLocal Service Manager
+ * Manages local Arweave blockchain for development
+ */
+
+import { createRequire } from 'node:module';
+import { existsSync, rmSync } from 'node:fs';
+import Arweave from 'arweave';
+import { logger } from './winston.js';
+
+export class ArLocalService {
+	private arLocal: { start(): Promise<void>; stop(): Promise<void> } | null = null;
+
+	private isRunning = false;
+	private port = 1984;
+	constructor(port = 1984) {
+		this.port = port;
+	}
+
+	async start(): Promise<void> {
+		if (this.isRunning) {
+			logger.info('ArLocal is already running');
+
+			// Verify it's actually accessible
+			const accessible = await this.isArLocalAccessible();
+
+			if (accessible) {
+				return;
+			}
+			logger.info(
+				'ArLocal appears to be running but not accessible, restarting...'
+			);
+
+			await this.stop();
+		}
+
+		try {
+			// Clean up any existing logs directory before starting ArLocal
+			if (existsSync('./logs')) {
+				logger.info('Removing existing logs directory before starting ArLocal');
+				rmSync('./logs', { recursive: true, force: true });
+			}
+
+			// Dynamic import for ArLocal to handle ES module issues
+			const require = createRequire(import.meta.url);
+			const ArLocal = require('arlocal').default;
+
+			this.arLocal = new ArLocal(this.port, false); // false = don't show logs
+
+			if (!this.arLocal) {
+				throw new Error('Failed to create ArLocal instance');
+			}
+
+			await this.arLocal.start();
+			this.isRunning = true;
+			// Give ArLocal a moment to fully initialize
+			await new Promise((resolve) => setTimeout(resolve, 3000));
+
+			// Verify it's accessible
+			const accessible = await this.isArLocalAccessible();
+			if (!accessible) {
+				throw new Error('ArLocal started but is not accessible');
+			}
+		} catch (error) {
+			logger.error('Failed to start ArLocal:', error);
+			this.isRunning = false;
+			this.arLocal = null;
+			throw error;
+		}
+	}
+
+	async stop(): Promise<void> {
+		if (!(this.isRunning && this.arLocal)) {
+			logger.info('ArLocal is not running');
+			return;
+		}
+		try {
+			logger.info('Stopping ArLocal...');
+			await this.arLocal.stop();
+			this.arLocal = null;
+			this.isRunning = false;
+			logger.info('ArLocal stopped successfully');
+		} catch (error) {
+			logger.error('Failed to stop ArLocal:', error);
+			throw error;
+		}
+	}
+
+	async mine(): Promise<void> {
+		if (!this.isRunning) {
+			throw new Error('ArLocal is not running');
+		}
+		try {
+			const arweave = Arweave.init({
+				host: 'localhost',
+				port: this.port,
+				protocol: 'http',
+			});
+
+			await arweave.api.get('mine');
+			logger.info('Block mined successfully');
+		} catch (error) {
+			logger.error('Failed to mine block:', error);
+			throw error;
+		}
+	}
+
+	isArLocalRunning(): boolean {
+		return this.isRunning;
+	}
+
+	getPort(): number {
+		return this.port;
+	}
+
+	getArweaveInstance(): Arweave {
+		if (!this.isRunning) {
+			throw new Error('ArLocal is not running');
+		}
+		return Arweave.init({
+			host: 'localhost',
+			port: this.port,
+			protocol: 'http',
+		});
+	}
+
+	async isArLocalAccessible(): Promise<boolean> {
+		if (!this.isRunning) {
+			return false;
+		}
+		try {
+			const arweave = Arweave.init({
+				host: 'localhost',
+				port: this.port,
+				protocol: 'http',
+			});
+
+			// Try to get network info to verify ArLocal is responding
+			await arweave.network.getInfo();
+			return true;
+		} catch (error) {
+			logger.warn('ArLocal is not accessible:', (error as Error).message);
+			return false;
+		}
+	}
+}
+
+export const arLocalService = new ArLocalService();
