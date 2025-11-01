@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState, Suspense } from "react";
-import { Cpu, DollarSign, ShoppingCart, TrendingUp } from "lucide-react";
 import DashboardNavbar from "@/components/ui/DashboardNavbar";
 import {
   LineChart,
@@ -11,7 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { getUserMemoryCount, getUserSubscription } from "@/lib/api";
+import { getUserSubscription } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { usePaymentSuccess } from "@/hooks/usePaymentSuccess";
 import { CodeBlock } from "@/components/ui/code-block";

@@ -101,19 +101,17 @@ export default function LoginPage() {
 						<div className="flex-1 border-t border-gray-700"></div>
 					</div>
 
-					{/* Sign Up Link */}
-					<p className="text-center text-gray-400">
-						Don't have an account?{" "}
-						<Link
-							href="/auth/signup"
-							className="text-blue-400 hover:text-blue-300 font-semibold transition"
-						>
-							Sign Up
-						</Link>
-					</p>
-				</div>
-
-				{/* Footer with Home Button */}
+			{/* Sign Up Link */}
+			<p className="text-center text-gray-400">
+				Don&apos;t have an account?{" "}
+				<Link
+					href="/auth/signup"
+					className="text-blue-400 hover:text-blue-300 font-semibold transition"
+				>
+					Sign Up
+				</Link>
+			</p>
+		</div>				{/* Footer with Home Button */}
 				<div className="text-center mt-8 text-gray-500 text-sm space-y-4">
 					<p>By signing in, you agree to our Terms of Service</p>
 					<div>
